@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title><%= typeof title !== 'undefined' ? title + ' · ' : '' %>Billing</title>
+	<link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+	<header class="nav">
+		<div class="nav-inner">
+			<div class="brand">
+				<% const _settings = (typeof settings !== 'undefined') ? settings : (locals.settings || null); %>
+				<% if (_settings && _settings.logo_url) { %>
+					<img src="<%= _settings.logo_url %>" alt="Logo"/>
+				<% } %>
+				<span>Billing</span>
+			</div>
+			<nav class="nav-links">
+				<% if (currentUser) { %>
+					<a href="/" class="btn ghost">Dashboard</a>
+					<a href="/products" class="btn ghost">Products</a>
+					<a href="/billing" class="btn ghost">Billing</a>
+					<a href="/history" class="btn ghost">History</a>
+					<a href="/reports" class="btn ghost">Reports</a>
+					<% if (currentUser.role === 'admin') { %>
+						<a href="/admin/users" class="btn ghost">Users</a>
+						<a href="/admin/settings" class="btn ghost">Admin</a>
+					<% } %>
+					<form action="/logout" method="post" style="display:inline">
+						<button class="btn secondary">Logout</button>
+					</form>
+				<% } %>
+			</nav>
+		</div>
+	</header>
+	<div class="container">
+		<% if (success && success.length) { %>
+			<div class="flash success"><%= success[0] %></div>
+		<% } %>
+		<% if (error && error.length) { %>
+			<div class="flash error"><%= error[0] %></div>
+		<% } %>
+
+

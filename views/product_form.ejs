@@ -1,0 +1,19 @@
+<%- include('partials/header') %>
+<div class="card" style="max-width:640px;margin:10px auto;">
+	<h3 class="mb-3"><%= product ? 'Edit' : 'New' %> Product</h3>
+	<form class="grid" method="post" action="<%= product ? '/products/' + product.id : '/products' %>">
+		<label>Name
+			<input class="input" type="text" name="name" value="<%= product ? product.name : '' %>" required />
+		</label>
+		<label>SKU
+			<input class="input" type="text" name="sku" value="<%= product ? (product.sku || '') : '' %>" />
+		</label>
+		<label>Price
+			<input class="input" type="number" name="price" step="0.01" min="0" value="<%= product ? product.price : '' %>" required />
+		</label>
+		<button class="btn"><%= product ? 'Update' : 'Create' %></button>
+	</form>
+</div>
+<%- include('partials/footer') %>
+
+

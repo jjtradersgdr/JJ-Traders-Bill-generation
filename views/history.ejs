@@ -1,0 +1,22 @@
+<%- include('partials/header') %>
+<div class="card">
+	<h3 class="mb-2">Billing History</h3>
+	<table class="table">
+		<thead><tr><th>#</th><th>Customer</th><th>Contact</th><th>Date</th><th class="right">Total</th><th></th></tr></thead>
+		<tbody>
+			<% bills.forEach(b => { %>
+				<tr>
+					<td><%= b.id %></td>
+					<td><%= b.customer_name || '-' %></td>
+					<td><%= b.customer_contact || '-' %></td>
+					<td><%= b.created_at %></td>
+					<td class="right">₹ <%= Number(b.total_amount).toFixed(2) %></td>
+					<td class="right"><a class="btn ghost" href="/bills/<%= b.id %>">View</a></td>
+				</tr>
+			<% }) %>
+		</tbody>
+	</table>
+</div>
+<%- include('partials/footer') %>
+
+

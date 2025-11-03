@@ -1,0 +1,15 @@
+<%- include('partials/header') %>
+<div class="row row-3">
+	<div class="card">
+		<div class="flex space-between"><span>Total Bills</span><span class="badge"><%= stats.count %></span></div>
+	</div>
+	<div class="card">
+		<div class="flex space-between"><span>Today Revenue</span><strong>₹ <%= (todayTotal.total||0).toFixed(2) %></strong></div>
+	</div>
+	<div class="card">
+		<div class="flex space-between"><span>Quick Actions</span><a class="btn" href="/billing">New Bill</a></div>
+	</div>
+</div>
+<%- include('partials/footer') %>
+
+

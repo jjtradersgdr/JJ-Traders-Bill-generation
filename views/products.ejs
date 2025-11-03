@@ -1,0 +1,39 @@
+<%- include('partials/header') %>
+<div class="flex space-between mb-3">
+	<form class="flex" method="get">
+		<input class="input" type="search" name="q" value="<%= q || '' %>" placeholder="Search name or SKU" />
+		<button class="btn">Search</button>
+	</form>
+	<% if (currentUser.role === 'admin' || currentUser.role === 'staff') { %>
+		<a class="btn" href="/products/new">Add Product</a>
+	<% } %>
+</div>
+<div class="card">
+	<table class="table">
+		<thead>
+			<tr><th>Name</th><th>SKU</th><th class="right">Price</th><th></th></tr>
+		</thead>
+		<tbody>
+			<% products.forEach(p => { %>
+				<tr>
+					<td><%= p.name %></td>
+					<td><%= p.sku || '-' %></td>
+					<td class="right">₹ <%= p.price.toFixed(2) %></td>
+					<td class="right">
+						<% if (currentUser.role === 'admin' || currentUser.role === 'staff') { %>
+							<a class="btn ghost" href="/products/<%= p.id %>/edit">Edit</a>
+						<% } %>
+						<% if (currentUser.role === 'admin') { %>
+							<form action="/products/<%= p.id %>/delete" method="post" style="display:inline" onsubmit="return confirm('Delete this product?')">
+								<button class="btn secondary">Delete</button>
+							</form>
+						<% } %>
+					</td>
+				</tr>
+			<% }) %>
+		</tbody>
+	</table>
+</div>
+<%- include('partials/footer') %>
+
+

@@ -1,0 +1,27 @@
+<%- include('partials/header') %>
+<div class="flex space-between mb-3">
+	<h3>Users</h3>
+	<a class="btn" href="/admin/users/new">Add User</a>
+</div>
+<div class="card">
+	<table class="table">
+		<thead><tr><th>Username</th><th>Role</th><th class="right"></th></tr></thead>
+		<tbody>
+			<% users.forEach(u => { %>
+				<tr>
+					<td><%= u.username %></td>
+					<td><span class="badge"><%= u.role %></span></td>
+					<td class="right">
+						<a class="btn ghost" href="/admin/users/<%= u.id %>/edit">Edit</a>
+						<form action="/admin/users/<%= u.id %>/delete" method="post" style="display:inline" onsubmit="return confirm('Delete this user?')">
+							<button class="btn secondary">Delete</button>
+						</form>
+					</td>
+				</tr>
+			<% }) %>
+		</tbody>
+	</table>
+</div>
+<%- include('partials/footer') %>
+
+

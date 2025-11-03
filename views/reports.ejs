@@ -1,0 +1,24 @@
+<%- include('partials/header') %>
+<div class="row row-2">
+	<div class="card">
+		<h3>Summary</h3>
+		<div class="grid">
+			<div class="flex space-between"><span>Total Bills</span><strong><%= summary.count %></strong></div>
+			<div class="flex space-between"><span>Total Revenue</span><strong>₹ <%= (summary.revenue||0).toFixed(2) %></strong></div>
+		</div>
+	</div>
+	<div class="card">
+		<h3>Last 30 Days</h3>
+		<table class="table">
+			<thead><tr><th>Date</th><th class="right">Bills</th><th class="right">Revenue</th></tr></thead>
+			<tbody>
+				<% daily.forEach(d => { %>
+					<tr><td><%= d.day %></td><td class="right"><%= d.num %></td><td class="right">₹ <%= (d.total||0).toFixed(2) %></td></tr>
+				<% }) %>
+			</tbody>
+		</table>
+	</div>
+</div>
+<%- include('partials/footer') %>
+
+

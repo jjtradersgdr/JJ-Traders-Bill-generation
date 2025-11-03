@@ -1,0 +1,51 @@
+<%- include('partials/header') %>
+<div class="card" style="max-width:720px;margin:10px auto;">
+	<div class="flex space-between">
+		<div>
+			<h2><%= (settings && settings.shop_name) || 'My Shop' %></h2>
+			<div class="muted"><%= (settings && settings.shop_contact) || '' %></div>
+		</div>
+		<div>
+			<% if (settings && settings.logo_url) { %>
+				<img src="<%= settings.logo_url %>" alt="logo" style="height:48px;object-fit:contain;"/>
+			<% } %>
+		</div>
+	</div>
+	<hr/>
+	<div class="grid grid-2">
+		<div>
+			<div><strong>Bill #</strong> <%= bill.id %></div>
+			<div><strong>Date</strong> <%= bill.created_at %></div>
+		</div>
+		<div>
+			<div><strong>Customer</strong> <%= bill.customer_name || '-' %></div>
+			<div><strong>Contact</strong> <%= bill.customer_contact || '-' %></div>
+			<div><strong>Address</strong> <%= bill.customer_address || '-' %></div>
+		</div>
+	</div>
+	<table class="table mt-3">
+		<thead><tr><th>Item</th><th class="right">Price</th><th class="right">Qty</th><th class="right">Total</th></tr></thead>
+		<tbody>
+		<% items.forEach(i => { %>
+			<tr>
+				<td><%= i.name %></td>
+				<td class="right">₹ <%= Number(i.price).toFixed(2) %></td>
+				<td class="right"><%= i.qty %></td>
+				<td class="right">₹ <%= (Number(i.price)*Number(i.qty)).toFixed(2) %></td>
+			</tr>
+		<% }) %>
+		</tbody>
+	</table>
+	<h3 class="right">Grand Total: ₹ <%= Number(bill.total_amount).toFixed(2) %></h3>
+	<div class="flex space-between mt-3">
+		<a class="btn" href="/bills/<%= bill.id %>/whatsapp">Send via WhatsApp</a>
+		<% if (settings && settings.qr_url) { %>
+			<div class="flex" style="gap:6px;align-items:center;">
+				<img src="<%= settings.qr_url %>" alt="QR" style="height:72px;width:72px;object-fit:contain;"/>
+				<span class="muted">Scan to pay</span>
+			</div>
+		<% } %>
+	</div>
+</div>
+<%- include('partials/footer') %>
+

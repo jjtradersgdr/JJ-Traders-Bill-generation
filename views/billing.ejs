@@ -1,0 +1,82 @@
+<%- include('partials/header') %>
+<div class="row row-2">
+	<div class="card">
+		<h3 class="mb-2">Products</h3>
+		<form class="flex mb-2" method="get">
+			<input class="input" type="search" name="q" placeholder="Search products" value="<%= (typeof q !== 'undefined' ? q : '') %>">
+			<button class="btn">Search</button>
+		</form>
+		<div style="max-height:420px;overflow:auto;">
+			<table class="table">
+				<thead><tr><th>Name</th><th class="right">Price</th><th></th></tr></thead>
+				<tbody>
+					<% products.forEach(p => { %>
+						<tr>
+							<td><%= p.name %></td>
+							<td class="right">₹ <%= p.price.toFixed(2) %></td>
+							<td class="right"><button class="btn ghost" type="button" onclick='addItem(<%- JSON.stringify({id:p.id, name:p.name, price:p.price}) %>)'>Add</button></td>
+						</tr>
+					<% }) %>
+				</tbody>
+			</table>
+		</div>
+	</div>
+	<div class="card">
+		<h3 class="mb-2">Current Bill</h3>
+		<div class="grid grid-2">
+			<input class="input" placeholder="Customer Name" id="customerName" />
+			<input class="input" placeholder="Contact (+91...)" id="customerContact" />
+		</div>
+		<textarea class="input mt-2" placeholder="Address" id="customerAddress" rows="2"></textarea>
+		<div class="mt-2" style="max-height:300px;overflow:auto;">
+			<table class="table" id="billTable">
+				<thead><tr><th>Item</th><th class="right">Price</th><th class="right">Qty</th><th class="right">Total</th><th></th></tr></thead>
+				<tbody></tbody>
+			</table>
+		</div>
+		<div class="flex space-between sticky-footer">
+			<strong>Total: ₹ <span id="grandTotal">0.00</span></strong>
+			<form id="billForm" method="post" action="/billing">
+				<input type="hidden" name="customerName" id="f_customerName" />
+				<input type="hidden" name="customerAddress" id="f_customerAddress" />
+				<input type="hidden" name="customerContact" id="f_customerContact" />
+				<input type="hidden" name="itemsJson" id="f_itemsJson" />
+				<button class="btn">Generate Bill</button>
+			</form>
+		</div>
+	</div>
+</div>
+
+<script>
+const items = [];
+function render() {
+	const tbody = document.querySelector('#billTable tbody');
+	tbody.innerHTML = '';
+	let total = 0;
+	items.forEach((it, idx) => {
+		const row = document.createElement('tr');
+		const line = it.price * it.qty;
+		total += line;
+		row.innerHTML = `<td>${it.name}</td><td class="right">₹ ${it.price.toFixed(2)}</td><td class="right"><input type="number" min="1" value="${it.qty}" style="width:70px" onchange="updateQty(${idx}, this.value)"></td><td class="right">₹ ${line.toFixed(2)}</td><td class="right"><button class='btn secondary' type='button' onclick='removeItem(${idx})'>Remove</button></td>`;
+		tbody.appendChild(row);
+	});
+	document.getElementById('grandTotal').textContent = total.toFixed(2);
+}
+function addItem(p) {
+	const existing = items.find(i => i.id === p.id);
+	if (existing) existing.qty += 1; else items.push({ ...p, qty: 1 });
+	render();
+}
+function updateQty(i, v) { items[i].qty = Math.max(1, Number(v||1)); render(); }
+function removeItem(i) { items.splice(i,1); render(); }
+
+document.getElementById('billForm').addEventListener('submit', (e) => {
+	if (items.length === 0) { e.preventDefault(); alert('Add at least one item.'); return; }
+	document.getElementById('f_customerName').value = document.getElementById('customerName').value;
+	document.getElementById('f_customerAddress').value = document.getElementById('customerAddress').value;
+	document.getElementById('f_customerContact').value = document.getElementById('customerContact').value;
+	document.getElementById('f_itemsJson').value = JSON.stringify(items);
+});
+</script>
+<%- include('partials/footer') %>
+

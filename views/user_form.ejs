@@ -1,0 +1,23 @@
+<%- include('partials/header') %>
+<div class="card" style="max-width:640px;margin:10px auto;">
+	<h3 class="mb-3"><%= user ? 'Edit' : 'New' %> User</h3>
+	<form class="grid" method="post" action="<%= user ? '/admin/users/' + user.id : '/admin/users' %>">
+		<label>Username
+			<input class="input" type="text" name="username" value="<%= user ? user.username : '' %>" required />
+		</label>
+		<label>Role
+			<select name="role" class="input" required>
+				<option value="admin" <%= user && user.role==='admin' ? 'selected' : '' %>>Admin</option>
+				<option value="staff" <%= user && user.role==='staff' ? 'selected' : '' %>>Staff</option>
+				<option value="cashier" <%= user && user.role==='cashier' ? 'selected' : '' %>>Cashier</option>
+			</select>
+		</label>
+		<label>Password <%= user ? '(leave blank to keep unchanged)' : '' %>
+			<input class="input" type="password" name="password" <%= user ? '' : 'required' %> />
+		</label>
+		<button class="btn"><%= user ? 'Update' : 'Create' %></button>
+	</form>
+</div>
+<%- include('partials/footer') %>
+
+

@@ -1,0 +1,17 @@
+<%- include('partials/header') %>
+<div class="card" style="max-width:480px;margin:40px auto;">
+	<h2 class="mb-3">Sign in</h2>
+	<form method="post" action="/login" class="grid">
+		<label>Username
+			<input class="input" type="text" name="username" required />
+		</label>
+		<label>Password
+			<input class="input" type="password" name="password" required />
+		</label>
+		<button class="btn">Login</button>
+	</form>
+	<p class="mt-3 muted">Default admin: admin / admin123</p>
+</div>
+<%- include('partials/footer') %>
+
+
