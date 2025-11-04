@@ -8,6 +8,13 @@ const LocalStrategy = require('passport-local').Strategy;
 const bcrypt = require('bcrypt');
 const multer = require('multer');
 const fs = require('fs');
+const PDFDocument = require('pdfkit');
+let twilioClient = null;
+try {
+    if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
+        twilioClient = require('twilio')(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+    }
+} catch (e) {}
 
 const { db, initDatabase } = require('./src/db');
 const { ensureRole } = require('./src/middleware/roles');
@@ -87,10 +94,14 @@ function ensureAuthenticated(req, res, next) {
 }
 
 // Routes
-app.get('/', ensureAuthenticated, (req, res) => {
-	const stats = db.prepare('SELECT COUNT(*) as count FROM bills').get();
-	const todayTotal = db.prepare("SELECT IFNULL(SUM(total_amount),0) as total FROM bills WHERE DATE(created_at)=DATE('now','localtime')").get();
-	res.render('dashboard', { stats, todayTotal });
+app.get('/', (req, res) => {
+    if (req.isAuthenticated && req.isAuthenticated()) {
+        const stats = db.prepare('SELECT COUNT(*) as count FROM bills').get();
+        const todayTotal = db.prepare("SELECT IFNULL(SUM(total_amount),0) as total FROM bills WHERE DATE(created_at)=DATE('now','localtime')").get();
+        return res.render('dashboard', { stats, todayTotal, title: 'Dashboard' });
+    }
+    const settings = db.prepare('SELECT * FROM settings LIMIT 1').get();
+    return res.render('home', { settings, title: 'Home' });
 });
 
 app.get('/login', (req, res) => {
@@ -157,16 +168,66 @@ app.post('/billing', ensureAuthenticated, ensureRole(['admin', 'staff', 'cashier
 	const items = JSON.parse(itemsJson || '[]');
 	let total = 0;
 	items.forEach(i => total += Number(i.price) * Number(i.qty));
-	const result = db.prepare('INSERT INTO bills (customer_name, customer_address, customer_contact, items_json, total_amount, created_by) VALUES (?,?,?,?,?,?)')
-		.run(customerName, customerAddress, customerContact, JSON.stringify(items), total, req.user.username);
-	res.redirect(`/bills/${result.lastInsertRowid}`);
+    const result = db.prepare('INSERT INTO bills (customer_name, customer_address, customer_contact, items_json, total_amount, created_by) VALUES (?,?,?,?,?,?)')
+        .run(customerName, customerAddress, customerContact, JSON.stringify(items), total, req.user.username);
+    const billId = result.lastInsertRowid;
+    try {
+        const pdfPath = path.join(__dirname, 'uploads', `bill-${billId}.pdf`);
+        const pdfUrlBase = process.env.PUBLIC_BASE_URL || `http://localhost:${process.env.PORT || 3000}`;
+        const pdfUrl = `${pdfUrlBase}/uploads/bill-${billId}.pdf`;
+        const settings = db.prepare('SELECT * FROM settings LIMIT 1').get() || {};
+        const doc = new PDFDocument({ size: 'A4', margin: 36 });
+        const stream = fs.createWriteStream(pdfPath);
+        doc.pipe(stream);
+        doc.fontSize(18).text(settings.shop_name || 'JJ Traders and Spices', { align: 'left' });
+        doc.moveDown(0.2);
+        doc.fontSize(10).fillColor('#555').text(`Bill #${billId}`);
+        doc.text(`Date: ${(new Date()).toLocaleString()}`);
+        doc.moveDown();
+        doc.fillColor('#000').fontSize(12).text(`Customer: ${customerName || '-'}`);
+        doc.text(`Contact: ${customerContact || '-'}`);
+        doc.text(`Address: ${customerAddress || '-'}`);
+        doc.moveDown();
+        doc.fontSize(12).text('Item', 36, doc.y, { continued: true });
+        doc.text('Price', 250, undefined, { continued: true });
+        doc.text('Qty', 340, undefined, { continued: true });
+        doc.text('Total', 420);
+        doc.moveTo(36, doc.y + 2).lineTo(559, doc.y + 2).strokeColor('#eee').stroke();
+        items.forEach(it => {
+            const lineTotal = Number(it.price) * Number(it.qty);
+            doc.moveDown(0.4);
+            doc.fillColor('#000').text(String(it.name || ''), 36, doc.y, { continued: true });
+            doc.text(Number(it.price).toFixed(2), 250, undefined, { continued: true });
+            doc.text(String(it.qty), 340, undefined, { continued: true });
+            doc.text(lineTotal.toFixed(2), 420);
+        });
+        doc.moveDown();
+        doc.fontSize(14).text(`Grand Total: ₹ ${total.toFixed(2)}`, { align: 'right' });
+        doc.end();
+        stream.on('finish', async () => {
+            if (twilioClient && process.env.WHATSAPP_FROM && customerContact) {
+                const raw = String(customerContact).replace(/[^\d]/g, '');
+                const e164 = raw.startsWith('91') ? `+${raw}` : `+91${raw}`;
+                try {
+                    await twilioClient.messages.create({
+                        from: `whatsapp:${process.env.WHATSAPP_FROM}`,
+                        to: `whatsapp:${e164}`,
+                        body: `Your bill #${billId} from JJ Traders and Spices`,
+                        mediaUrl: [pdfUrl]
+                    });
+                } catch (e) {}
+            }
+        });
+    } catch (e) {}
+    res.redirect(`/bills/${billId}`);
 });
 app.get('/bills/:id', ensureAuthenticated, (req, res) => {
 	const bill = db.prepare('SELECT * FROM bills WHERE id = ?').get(req.params.id);
 	if (!bill) return res.redirect('/billing');
 	const items = JSON.parse(bill.items_json || '[]');
 	const settings = db.prepare('SELECT * FROM settings LIMIT 1').get();
-	res.render('bill_view', { bill, items, settings });
+    const whatsappEnabled = !!(twilioClient && process.env.WHATSAPP_FROM);
+    res.render('bill_view', { bill, items, settings, whatsappEnabled });
 });
 
 // WhatsApp share (link generation)
@@ -182,6 +243,43 @@ app.get('/bills/:id/whatsapp', ensureAuthenticated, (req, res) => {
 	const phone = (bill.customer_contact || '').replace(/[^\d]/g, '');
 	const url = `https://wa.me/${phone}?text=${msg}`;
 	res.redirect(url);
+});
+
+// PDF download route
+app.get('/bills/:id/pdf', ensureAuthenticated, (req, res) => {
+    const bill = db.prepare('SELECT * FROM bills WHERE id = ?').get(req.params.id);
+    if (!bill) return res.redirect('/billing');
+    const items = JSON.parse(bill.items_json || '[]');
+    const settings = db.prepare('SELECT * FROM settings LIMIT 1').get() || {};
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename=bill-${bill.id}.pdf`);
+    const doc = new PDFDocument({ size: 'A4', margin: 36 });
+    doc.pipe(res);
+    doc.fontSize(18).text(settings.shop_name || 'JJ Traders and Spices', { align: 'left' });
+    doc.moveDown(0.2);
+    doc.fontSize(10).fillColor('#555').text(`Bill #${bill.id}`);
+    doc.text(`Date: ${bill.created_at}`);
+    doc.moveDown();
+    doc.fillColor('#000').fontSize(12).text(`Customer: ${bill.customer_name || '-'}`);
+    doc.text(`Contact: ${bill.customer_contact || '-'}`);
+    doc.text(`Address: ${bill.customer_address || '-'}`);
+    doc.moveDown();
+    doc.fontSize(12).text('Item', 36, doc.y, { continued: true });
+    doc.text('Price', 250, undefined, { continued: true });
+    doc.text('Qty', 340, undefined, { continued: true });
+    doc.text('Total', 420);
+    doc.moveTo(36, doc.y + 2).lineTo(559, doc.y + 2).strokeColor('#eee').stroke();
+    items.forEach(it => {
+        const lineTotal = Number(it.price) * Number(it.qty);
+        doc.moveDown(0.4);
+        doc.fillColor('#000').text(String(it.name || ''), 36, doc.y, { continued: true });
+        doc.text(Number(it.price).toFixed(2), 250, undefined, { continued: true });
+        doc.text(String(it.qty), 340, undefined, { continued: true });
+        doc.text(lineTotal.toFixed(2), 420);
+    });
+    doc.moveDown();
+    doc.fontSize(14).text(`Grand Total: ₹ ${Number(bill.total_amount).toFixed(2)}`, { align: 'right' });
+    doc.end();
 });
 
 // History & reports
