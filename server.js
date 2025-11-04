@@ -193,7 +193,7 @@ app.get('/billing', ensureAuthenticated, ensureRole(['admin', 'staff', 'cashier'
 	const settings = db.prepare('SELECT * FROM settings LIMIT 1').get();
 	res.render('billing', { products, settings });
 });
-app.post('/billing', ensureAuthenticated, ensureRole(['admin', 'staff', 'cashier']), (req, res) => {
+app.post('/billing', ensureAuthenticated, ensureRole(['admin', 'staff', 'cashier']), async (req, res) => {
 	const { customerName, customerAddress, customerContact, itemsJson } = req.body;
 	const items = JSON.parse(itemsJson || '[]');
 	let total = 0;
