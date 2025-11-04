@@ -11,9 +11,8 @@
 		<header class="landing-header">
 			<div class="inner">
 				<div class="landing-brand">
-					<% if (settings && settings.logo_url) { %>
-						<img src="<%= settings.logo_url %>" alt="JJ Traders and Spices" style="height:32px;width:32px;object-fit:contain"/>
-					<% } %>
+					<% var logoSrc = (settings && settings.logo_url) ? settings.logo_url : '/img/jj-logo.png'; %>
+					<img src="<%= logoSrc %>" alt="JJ Traders and Spices" style="height:32px;width:32px;object-fit:contain"/>
 					<span>JJ Traders and Spices</span>
 				</div>
 				<nav class="landing-nav">

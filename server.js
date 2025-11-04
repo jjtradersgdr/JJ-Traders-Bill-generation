@@ -16,6 +16,31 @@ try {
         twilioClient = require('twilio')(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
     }
 } catch (e) {}
+let puppeteer = null;
+try { puppeteer = require('puppeteer'); } catch (e) { puppeteer = null; }
+
+async function renderBillPng(app, bill, items, settings, outPath) {
+    if (!puppeteer) throw new Error('Puppeteer not available');
+    const html = await new Promise((resolve, reject) => {
+        app.render('share_bill', { bill, items, settings }, (err, str) => err ? reject(err) : resolve(str));
+    });
+    const browser = await puppeteer.launch({ args: ['--no-sandbox','--disable-setuid-sandbox'] });
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: 'networkidle0' });
+    await page.setViewport({ width: 900, height: 1200, deviceScaleFactor: 2 });
+    await page.screenshot({ path: outPath, type: 'png', fullPage: true });
+    await browser.close();
+}
+
+async function sendWhatsappMedia(toE164, body, mediaUrl) {
+    if (!twilioClient || !process.env.WHATSAPP_FROM) throw new Error('Twilio not configured');
+    return await twilioClient.messages.create({
+        from: `whatsapp:${process.env.WHATSAPP_FROM}`,
+        to: `whatsapp:${toE164}`,
+        body,
+        mediaUrl: Array.isArray(mediaUrl) ? mediaUrl : [mediaUrl]
+    });
+}
 
 const { db, initDatabase } = require('./src/db');
 const { ensureRole } = require('./src/middleware/roles');
@@ -177,53 +202,56 @@ app.post('/billing', ensureAuthenticated, ensureRole(['admin', 'staff', 'cashier
         .run(customerName, customerAddress, customerContact, JSON.stringify(items), total, req.user.username);
     const billId = result.lastInsertRowid;
     try {
-        if (!PDFDocument) throw new Error('PDF module not available');
-        const pdfPath = path.join(__dirname, 'uploads', `bill-${billId}.pdf`);
         const pdfUrlBase = process.env.PUBLIC_BASE_URL || `http://localhost:${process.env.PORT || 3000}`;
-        const pdfUrl = `${pdfUrlBase}/uploads/bill-${billId}.pdf`;
         const settings = db.prepare('SELECT * FROM settings LIMIT 1').get() || {};
-        const doc = new PDFDocument({ size: 'A4', margin: 36 });
-        const stream = fs.createWriteStream(pdfPath);
-        doc.pipe(stream);
-        doc.fontSize(18).text(settings.shop_name || 'JJ Traders and Spices', { align: 'left' });
-        doc.moveDown(0.2);
-        doc.fontSize(10).fillColor('#555').text(`Bill #${billId}`);
-        doc.text(`Date: ${(new Date()).toLocaleString()}`);
-        doc.moveDown();
-        doc.fillColor('#000').fontSize(12).text(`Customer: ${customerName || '-'}`);
-        doc.text(`Contact: ${customerContact || '-'}`);
-        doc.text(`Address: ${customerAddress || '-'}`);
-        doc.moveDown();
-        doc.fontSize(12).text('Item', 36, doc.y, { continued: true });
-        doc.text('Price', 250, undefined, { continued: true });
-        doc.text('Qty', 340, undefined, { continued: true });
-        doc.text('Total', 420);
-        doc.moveTo(36, doc.y + 2).lineTo(559, doc.y + 2).strokeColor('#eee').stroke();
-        items.forEach(it => {
-            const lineTotal = Number(it.price) * Number(it.qty);
-            doc.moveDown(0.4);
-            doc.fillColor('#000').text(String(it.name || ''), 36, doc.y, { continued: true });
-            doc.text(Number(it.price).toFixed(2), 250, undefined, { continued: true });
-            doc.text(String(it.qty), 340, undefined, { continued: true });
-            doc.text(lineTotal.toFixed(2), 420);
-        });
-        doc.moveDown();
-        doc.fontSize(14).text(`Grand Total: ₹ ${total.toFixed(2)}`, { align: 'right' });
-        doc.end();
-        stream.on('finish', async () => {
-            if (twilioClient && process.env.WHATSAPP_FROM && customerContact) {
-                const raw = String(customerContact).replace(/[^\d]/g, '');
-                const e164 = raw.startsWith('91') ? `+${raw}` : `+91${raw}`;
-                try {
-                    await twilioClient.messages.create({
-                        from: `whatsapp:${process.env.WHATSAPP_FROM}`,
-                        to: `whatsapp:${e164}`,
-                        body: `Your bill #${billId} from JJ Traders and Spices`,
-                        mediaUrl: [pdfUrl]
-                    });
-                } catch (e) {}
+        const raw = String(customerContact || '').replace(/[^\d]/g, '');
+        const e164 = raw ? (raw.startsWith('91') ? `+${raw}` : `+91${raw}`) : null;
+
+        let sent = false;
+        // 1) Try PDF if pdfkit is available
+        if (PDFDocument) {
+            const pdfPath = path.join(__dirname, 'uploads', `bill-${billId}.pdf`);
+            const pdfUrl = `${pdfUrlBase}/uploads/bill-${billId}.pdf`;
+            const doc = new PDFDocument({ size: 'A4', margin: 36 });
+            const stream = fs.createWriteStream(pdfPath);
+            doc.pipe(stream);
+            doc.fontSize(18).text(settings.shop_name || 'JJ Traders and Spices', { align: 'left' });
+            doc.moveDown(0.2);
+            doc.fontSize(10).fillColor('#555').text(`Bill #${billId}`);
+            doc.text(`Date: ${(new Date()).toLocaleString()}`);
+            doc.moveDown();
+            doc.fillColor('#000').fontSize(12).text(`Customer: ${customerName || '-'}`);
+            doc.text(`Contact: ${customerContact || '-'}`);
+            doc.text(`Address: ${customerAddress || '-'}`);
+            doc.moveDown();
+            doc.fontSize(12).text('Item', 36, doc.y, { continued: true });
+            doc.text('Price', 250, undefined, { continued: true });
+            doc.text('Qty', 340, undefined, { continued: true });
+            doc.text('Total', 420);
+            doc.moveTo(36, doc.y + 2).lineTo(559, doc.y + 2).strokeColor('#eee').stroke();
+            items.forEach(it => {
+                const lineTotal = Number(it.price) * Number(it.qty);
+                doc.moveDown(0.4);
+                doc.fillColor('#000').text(String(it.name || ''), 36, doc.y, { continued: true });
+                doc.text(Number(it.price).toFixed(2), 250, undefined, { continued: true });
+                doc.text(String(it.qty), 340, undefined, { continued: true });
+                doc.text(lineTotal.toFixed(2), 420);
+            });
+            doc.moveDown();
+            doc.fontSize(14).text(`Grand Total: ₹ ${total.toFixed(2)}`, { align: 'right' });
+            doc.end();
+            await new Promise(resolve => stream.on('finish', resolve));
+            if (twilioClient && process.env.WHATSAPP_FROM && e164) {
+                try { await sendWhatsappMedia(e164, `Your bill #${billId} from JJ Traders and Spices`, pdfUrl); sent = true; } catch (e) {}
             }
-        });
+        }
+        // 2) If not sent, try PNG via puppeteer
+        if (!sent && puppeteer && e164) {
+            const pngPath = path.join(__dirname, 'uploads', `bill-${billId}.png`);
+            await renderBillPng(app, { id: billId, customer_name: customerName, customer_contact: customerContact, customer_address: customerAddress, total_amount: total, created_at: (new Date()).toISOString() }, items, settings, pngPath);
+            const pngUrl = `${pdfUrlBase}/uploads/bill-${billId}.png`;
+            try { await sendWhatsappMedia(e164, `Your bill #${billId} from JJ Traders and Spices`, pngUrl); sent = true; } catch (e) {}
+        }
     } catch (e) {}
     res.redirect(`/bills/${billId}`);
 });
