@@ -1,15 +1,109 @@
 <%- include('partials/header') %>
-<div class="row row-3">
-	<div class="card">
-		<div class="flex space-between"><span>Total Bills</span><span class="badge"><%= stats.count %></span></div>
+
+<section class="kpis">
+	<div class="card kpi">
+		<span class="label">Total Bills</span>
+		<div class="value"><%= stats && stats.count ? stats.count : 0 %></div>
 	</div>
-	<div class="card">
-		<div class="flex space-between"><span>Today Revenue</span><strong>₹ <%= (todayTotal.total||0).toFixed(2) %></strong></div>
+	<div class="card kpi">
+		<span class="label">Today Revenue</span>
+		<div class="value">₹ <%= (todayTotal && todayTotal.total ? todayTotal.total : 0).toFixed(2) %></div>
 	</div>
-	<div class="card">
-		<div class="flex space-between"><span>Quick Actions</span><a class="btn" href="/billing">New Bill</a></div>
+	<div class="card kpi">
+		<span class="label">Monthly Revenue</span>
+		<div class="value">₹ <%= (monthTotal && monthTotal.total ? monthTotal.total : 0).toFixed(2) %></div>
 	</div>
-</div>
+	<div class="card kpi">
+		<span class="label">Pending Dues</span>
+		<div class="value">₹ <%= (pendingTotal && pendingTotal.total ? pendingTotal.total : 0).toFixed(2) %></div>
+	</div>
+</section>
+
+<section class="row row-2 mt-4">
+	<div class="card chart-card">
+		<header>Revenue (Last 7 Days)</header>
+		<div class="chart"><canvas id="revenueChart" height="140"></canvas></div>
+	</div>
+	<div class="card chart-card">
+		<header>Top Products</header>
+		<div class="chart"><canvas id="productsChart" height="140"></canvas></div>
+	</div>
+</section>
+
+<section class="row row-2 mt-4">
+	<div class="card card-table">
+		<header>Recent Invoices</header>
+		<div class="body">
+			<table class="table">
+				<thead>
+					<tr>
+						<th>#</th>
+						<th>Customer</th>
+						<th class="right">Amount</th>
+						<th>Status</th>
+					</tr>
+				</thead>
+				<tbody>
+					<% (recentBills || []).slice(0,8).forEach(function(b){ %>
+						<tr>
+							<td><%= b.id %></td>
+							<td><%= b.customer_name || '-' %></td>
+							<td class="right">₹ <%= (b.total||0).toFixed(2) %></td>
+							<td><span class="badge"><%= b.status || 'paid' %></span></td>
+						</tr>
+					<% }); %>
+					<% if (!(recentBills && recentBills.length)) { %>
+						<tr><td colspan="4">No invoices yet.</td></tr>
+					<% } %>
+				</tbody>
+			</table>
+		</div>
+	</div>
+	<div class="card card-table">
+		<header>Pending Payments</header>
+		<div class="body">
+			<table class="table">
+				<thead>
+					<tr>
+						<th>Customer</th>
+						<th class="right">Due</th>
+						<th>Action</th>
+					</tr>
+				</thead>
+				<tbody>
+					<% (pendingBills || []).slice(0,8).forEach(function(p){ %>
+						<tr>
+							<td><%= p.customer_name || '-' %></td>
+							<td class="right">₹ <%= (p.due||0).toFixed(2) %></td>
+							<td><a href="/billing?id=<%= p.id %>" class="btn ghost">Collect</a></td>
+						</tr>
+					<% }); %>
+					<% if (!(pendingBills && pendingBills.length)) { %>
+						<tr><td colspan="3">No pending payments.</td></tr>
+					<% } %>
+				</tbody>
+			</table>
+		</div>
+	</div>
+</section>
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+	var ctx1 = document.getElementById('revenueChart');
+	if (ctx1 && window.Chart) {
+		var labels = (typeof last7Labels !== 'undefined' && last7Labels) ? last7Labels : ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+		var values = (typeof last7Totals !== 'undefined' && last7Totals) ? last7Totals : [1200, 1600, 900, 1800, 2000, 1500, 2200];
+		new Chart(ctx1, { type: 'line', data: { labels: labels, datasets: [{ label: 'Revenue', data: values, borderColor: '#0f766e', backgroundColor: 'rgba(15,118,110,0.1)', tension: .3, fill: true }] }, options: { plugins: { legend: { display: false } }, scales: { y: { ticks: { callback: v => '₹ ' + v } } } } });
+	}
+	var ctx2 = document.getElementById('productsChart');
+	if (ctx2 && window.Chart) {
+		var pLabels = (typeof topProductLabels !== 'undefined' && topProductLabels) ? topProductLabels : ['Item A','Item B','Item C','Item D'];
+		var pValues = (typeof topProductTotals !== 'undefined' && topProductTotals) ? topProductTotals : [35,25,20,20];
+		new Chart(ctx2, { type: 'doughnut', data: { labels: pLabels, datasets: [{ data: pValues, backgroundColor: ['#0f766e','#0891b2','#f59e0b','#ef4444'] }] }, options: { plugins: { legend: { position: 'bottom' } } } });
+	}
+});
+</script>
+
 <%- include('partials/footer') %>
 
 

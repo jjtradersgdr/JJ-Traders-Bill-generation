@@ -5,10 +5,22 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title><%= typeof title !== 'undefined' ? title + ' · ' : '' %>Billing</title>
 	<link rel="stylesheet" href="/css/styles.css">
+	<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
+	<script>
+		// simple sidebar toggle for mobile
+		window.addEventListener('DOMContentLoaded', function() {
+			var toggle = document.getElementById('sidebarToggle');
+			if (toggle) {
+				toggle.addEventListener('click', function() {
+					document.body.classList.toggle('sidebar-open');
+				});
+			}
+		});
+	</script>
 </head>
 <body>
-	<header class="nav">
-		<div class="nav-inner">
+	<div class="app">
+		<aside class="sidebar">
 			<div class="brand">
 				<% const _settings = (typeof settings !== 'undefined') ? settings : (locals.settings || null); %>
 				<% if (_settings && _settings.logo_url) { %>
@@ -16,30 +28,37 @@
 				<% } %>
 				<span>Billing</span>
 			</div>
-			<nav class="nav-links">
+			<nav class="side-links">
 				<% if (currentUser) { %>
-					<a href="/" class="btn ghost">Dashboard</a>
-					<a href="/products" class="btn ghost">Products</a>
-					<a href="/billing" class="btn ghost">Billing</a>
-					<a href="/history" class="btn ghost">History</a>
-					<a href="/reports" class="btn ghost">Reports</a>
+					<a href="/" class="side-link">Dashboard</a>
+					<a href="/products" class="side-link">Products</a>
+					<a href="/billing" class="side-link">Billing</a>
+					<a href="/history" class="side-link">History</a>
+					<a href="/reports" class="side-link">Reports</a>
 					<% if (currentUser.role === 'admin') { %>
-						<a href="/admin/users" class="btn ghost">Users</a>
-						<a href="/admin/settings" class="btn ghost">Admin</a>
+						<a href="/admin/users" class="side-link">Users</a>
+						<a href="/admin/settings" class="side-link">Admin</a>
 					<% } %>
+				<% } %>
+			</nav>
+		</aside>
+		<div class="content">
+			<header class="topbar">
+				<button id="sidebarToggle" class="btn icon" aria-label="Toggle menu">☰</button>
+				<div class="topbar-actions">
+					<a href="/billing" class="btn">New Bill</a>
+					<% if (currentUser) { %>
 					<form action="/logout" method="post" style="display:inline">
 						<button class="btn secondary">Logout</button>
 					</form>
+					<% } %>
+				</div>
+			</header>
+			<main class="container">
+				<% if (success && success.length) { %>
+					<div class="flash success"><%= success[0] %></div>
 				<% } %>
-			</nav>
-		</div>
-	</header>
-	<div class="container">
-		<% if (success && success.length) { %>
-			<div class="flash success"><%= success[0] %></div>
-		<% } %>
-		<% if (error && error.length) { %>
-			<div class="flash error"><%= error[0] %></div>
-		<% } %>
-
+				<% if (error && error.length) { %>
+					<div class="flash error"><%= error[0] %></div>
+				<% } %>
 

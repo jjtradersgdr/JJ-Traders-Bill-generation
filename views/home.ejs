@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>JJ Traders and Spices</title>
+	<link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+	<div class="landing">
+		<header class="landing-header">
+			<div class="inner">
+				<div class="landing-brand">
+					<% if (settings && settings.logo_url) { %>
+						<img src="<%= settings.logo_url %>" alt="JJ Traders and Spices" style="height:32px;width:32px;object-fit:contain"/>
+					<% } %>
+					<span>JJ Traders and Spices</span>
+				</div>
+				<nav class="landing-nav">
+					<a href="#popular" class="btn ghost">Popular</a>
+					<a href="#about" class="btn ghost">About</a>
+					<a href="#contact" class="btn ghost">Contact</a>
+				</nav>
+			</div>
+		</header>
+
+		<section class="landing-hero">
+			<div class="content">
+				<h1>Hot Spices, Fresh Taste</h1>
+				<p>Just for the taste of spice. Premium whole and ground spices sourced with care. Order for your store or kitchen.</p>
+				<div>
+					<a href="https://wa.me/918110022331?text=Hello%20JJ%20Traders%20and%20Spices%2C%20I%20want%20to%20order." class="btn">Shop Now</a>
+					<a href="https://wa.me/918110022331?text=Hello%20JJ%20Traders%20and%20Spices%2C%20tell%20me%20more%20about%20your%20products." class="btn ghost">Learn More</a>
+				</div>
+			</div>
+		</section>
+
+		<section id="popular" class="landing-sections">
+			<div class="info-grid">
+				<div class="info-card"><strong>New Arrival</strong><p>Haldi, Mirchi, Dhaniya — fresh and aromatic.</p></div>
+				<div class="info-card"><strong>Best Offer</strong><p>Save on bulk orders for restaurants and retailers.</p></div>
+				<div class="info-card"><strong>Popular Mixes</strong><p>Garam Masala, Sambar Powder, Biryani Mix.</p></div>
+			</div>
+		</section>
+
+		<footer id="about" class="landing-sections">
+			<div class="card">
+				<strong>About JJ Traders and Spices</strong>
+				<p class="mt-2">We deliver hand-picked spices at fair prices. Reach us for wholesale, retail, and customized blends.</p>
+				<p id="contact" class="mt-2">Contact: <%= (settings && settings.shop_contact) ? settings.shop_contact : '+91-XXXXXXXXXX' %></p>
+			</div>
+		</footer>
+	</div>
+
+	<div class="admin-fab">
+		<a href="/login" class="btn">Admin Login</a>
+	</div>
+</body>
+</html>
+
+

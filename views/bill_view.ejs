@@ -38,7 +38,13 @@
 	</table>
 	<h3 class="right">Grand Total: ₹ <%= Number(bill.total_amount).toFixed(2) %></h3>
 	<div class="flex space-between mt-3">
-		<a class="btn" href="/bills/<%= bill.id %>/whatsapp">Send via WhatsApp</a>
+		<div class="flex">
+			<a class="btn ghost" href="/bills/<%= bill.id %>/pdf" target="_blank">Download PDF</a>
+			<a class="btn" href="/bills/<%= bill.id %>/whatsapp">Send via WhatsApp</a>
+			<% if (typeof whatsappEnabled !== 'undefined' && whatsappEnabled) { %>
+				<a class="btn secondary" href="/uploads/bill-<%= bill.id %>.pdf" target="_blank">WhatsApp PDF sent (if configured)</a>
+			<% } %>
+		</div>
 		<% if (settings && settings.qr_url) { %>
 			<div class="flex" style="gap:6px;align-items:center;">
 				<img src="<%= settings.qr_url %>" alt="QR" style="height:72px;width:72px;object-fit:contain;"/>
