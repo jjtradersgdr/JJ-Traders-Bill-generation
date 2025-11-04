@@ -108,7 +108,7 @@ const storage = multer.diskStorage({
 	},
 	filename: (req, file, cb) => {
 		const ext = path.extname(file.originalname);
-		const base = file.fieldname === 'shopLogo' ? 'logo' : (file.fieldname === 'qrImage' ? 'qr' : 'file');
+		const base = file.fieldname === 'shopLogo' ? 'logo' : (file.fieldname === 'qrImage' ? 'qr' : (file.fieldname === 'heroImage' ? 'hero' : 'file'));
 		cb(null, `${base}${ext}`);
 	}
 });
@@ -333,19 +333,22 @@ app.get('/admin/settings', ensureAuthenticated, ensureRole(['admin']), (req, res
 	const settings = db.prepare('SELECT * FROM settings LIMIT 1').get();
 	res.render('settings', { settings });
 });
-app.post('/admin/settings', ensureAuthenticated, ensureRole(['admin']), upload.fields([{ name: 'shopLogo' }, { name: 'qrImage' }]), (req, res) => {
+app.post('/admin/settings', ensureAuthenticated, ensureRole(['admin']), upload.fields([{ name: 'shopLogo' }, { name: 'qrImage' }, { name: 'heroImage' }]), (req, res) => {
+
 	const { shopName, shopContact } = req.body;
 	const logoPath = req.files && req.files.shopLogo ? `/uploads/${req.files.shopLogo[0].filename}` : undefined;
 	const qrPath = req.files && req.files.qrImage ? `/uploads/${req.files.qrImage[0].filename}` : undefined;
+	const heroPath = req.files && req.files.heroImage ? `/uploads/${req.files.heroImage[0].filename}` : undefined;
 	const current = db.prepare('SELECT * FROM settings LIMIT 1').get();
 	const newLogo = logoPath || (current && current.logo_url) || null;
 	const newQr = qrPath || (current && current.qr_url) || null;
+	const newHero = heroPath || (current && current.hero_url) || null;
 	if (current) {
-		db.prepare('UPDATE settings SET shop_name=?, shop_contact=?, logo_url=?, qr_url=? WHERE id=?')
-			.run(shopName, shopContact, newLogo, newQr, current.id);
+		db.prepare('UPDATE settings SET shop_name=?, shop_contact=?, logo_url=?, qr_url=?, hero_url=? WHERE id=?')
+			.run(shopName, shopContact, newLogo, newQr, newHero, current.id);
 	} else {
-		db.prepare('INSERT INTO settings (shop_name, shop_contact, logo_url, qr_url) VALUES (?,?,?,?)')
-			.run(shopName, shopContact, newLogo, newQr);
+		db.prepare('INSERT INTO settings (shop_name, shop_contact, logo_url, qr_url, hero_url) VALUES (?,?,?,?,?)')
+			.run(shopName, shopContact, newLogo, newQr, newHero);
 	}
 	req.flash('success', 'Settings updated');
 	res.redirect('/admin/settings');

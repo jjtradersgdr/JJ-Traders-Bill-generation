@@ -36,8 +36,16 @@ function initDatabase() {
 		shop_name TEXT,
 		shop_contact TEXT,
 		logo_url TEXT,
-		qr_url TEXT
+		qr_url TEXT,
+		hero_url TEXT
 	)`).run();
+
+	// Ensure hero_url exists for older databases
+	const cols = db.prepare("PRAGMA table_info(settings)").all();
+	const hasHero = cols.some(c => c.name === 'hero_url');
+	if (!hasHero) {
+		db.prepare('ALTER TABLE settings ADD COLUMN hero_url TEXT').run();
+	}
 
 	// Seed admin if none
 	const count = db.prepare('SELECT COUNT(*) as c FROM users').get().c;
@@ -50,8 +58,8 @@ function initDatabase() {
 	// Seed settings if empty
 	const settings = db.prepare('SELECT COUNT(*) as c FROM settings').get().c;
 	if (settings === 0) {
-		db.prepare('INSERT INTO settings (shop_name, shop_contact, logo_url, qr_url) VALUES (?,?,?,?)')
-			.run('My Shop', '+91 90000 00000', null, null);
+		db.prepare('INSERT INTO settings (shop_name, shop_contact, logo_url, qr_url, hero_url) VALUES (?,?,?,?,?)')
+			.run('My Shop', '+91 90000 00000', null, null, null);
 	}
 }
 

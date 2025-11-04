@@ -15,6 +15,9 @@
 			<label>QR Code Image
 				<input class="input" type="file" name="qrImage" accept="image/*" />
 			</label>
+			<label>Home Banner Image
+				<input class="input" type="file" name="heroImage" accept="image/*" />
+			</label>
 		</div>
 		<div class="flex" style="gap:20px;align-items:center;">
 			<div>
@@ -29,6 +32,14 @@
 				<div class="muted">Current QR</div>
 				<% if (settings && settings.qr_url) { %>
 					<img src="<%= settings.qr_url %>" alt="qr" style="height:56px;object-fit:contain;"/>
+				<% } else { %>
+					<span class="muted">None</span>
+				<% } %>
+			</div>
+			<div>
+				<div class="muted">Current Home Banner</div>
+				<% if (settings && settings.hero_url) { %>
+					<img src="<%= settings.hero_url %>" alt="hero" style="height:56px;object-fit:cover;aspect-ratio:3/1;border:1px solid #e5e7eb;border-radius:6px;"/>
 				<% } else { %>
 					<span class="muted">None</span>
 				<% } %>
