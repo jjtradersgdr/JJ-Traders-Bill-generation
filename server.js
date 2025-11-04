@@ -18,6 +18,8 @@ try {
 } catch (e) {}
 let puppeteer = null;
 try { puppeteer = require('puppeteer'); } catch (e) { puppeteer = null; }
+let XLSX = null;
+try { XLSX = require('xlsx'); } catch (e) { XLSX = null; }
 
 async function renderBillPng(app, bill, items, settings, outPath) {
     if (!puppeteer) throw new Error('Puppeteer not available');
@@ -184,6 +186,60 @@ app.post('/products/:id/delete', ensureAuthenticated, ensureRole(['admin']), (re
 	res.redirect('/products');
 });
 
+// Bulk upload - products
+app.get('/products/bulk', ensureAuthenticated, ensureRole(['admin','staff']), (req, res) => {
+	res.render('products_bulk');
+});
+app.post('/products/bulk', ensureAuthenticated, ensureRole(['admin','staff']), upload.single('excelFile'), (req, res) => {
+	if (!XLSX) { req.flash('error', 'Excel parser not available'); return res.redirect('/products/bulk'); }
+	if (!req.file) { req.flash('error', 'Please upload an Excel file'); return res.redirect('/products/bulk'); }
+	try {
+		const buf = req.file.buffer || fs.readFileSync(req.file.path);
+		const wb = XLSX.read(buf, { type: 'buffer' });
+		const ws = wb.Sheets[wb.SheetNames[0]];
+		const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+		let inserted = 0, updated = 0;
+		const upsert = db.prepare('INSERT INTO products (name, sku, price) VALUES (?,?,?) ON CONFLICT(sku) DO UPDATE SET name=excluded.name, price=excluded.price');
+		const upsertNoSku = db.prepare('INSERT INTO products (name, price) VALUES (?, ?)');
+		const updateNoSku = db.prepare('UPDATE products SET price=? WHERE name=?');
+		db.transaction(() => {
+			rows.forEach(r => {
+				const name = String(r.name || r.Name || r.NAME || '').trim();
+				const sku = String(r.sku || r.SKU || r.Sku || '').trim();
+				const price = Number(r.price || r.Price || r.PRICE || 0);
+				if (!name) return;
+				if (sku) {
+					try { upsert.run(name, sku, price); inserted++; } catch (e) { updated++; }
+				} else {
+					const exists = db.prepare('SELECT id FROM products WHERE name=?').get(name);
+					if (exists) { updateNoSku.run(price, name); updated++; } else { upsertNoSku.run(name, price); inserted++; }
+				}
+			});
+		})();
+		req.flash('success', `Uploaded: ${inserted} added, ${updated} updated`);
+		return res.redirect('/products');
+	} catch (e) {
+		req.flash('error', 'Failed to process the Excel file');
+		return res.redirect('/products/bulk');
+	}
+});
+
+// Downloadable template
+app.get('/products/bulk/template', ensureAuthenticated, ensureRole(['admin','staff']), (req, res) => {
+    if (!XLSX) { return res.status(503).send('Excel generator not available'); }
+    const data = [
+        { name: 'Turmeric Powder 1kg', sku: 'HALDI-1KG', price: 240 },
+        { name: 'Cumin Seeds 500g', sku: 'CUMIN-500', price: 180 }
+    ];
+    const ws = XLSX.utils.json_to_sheet(data, { header: ['name','sku','price'] });
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Products');
+    const out = XLSX.write(wb, { bookType: 'xlsx', type: 'buffer' });
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename="products_template.xlsx"');
+    res.send(out);
+});
+
 // Billing
 app.get('/billing', ensureAuthenticated, ensureRole(['admin', 'staff', 'cashier']), (req, res) => {
 	const q = (req.query.q || '').trim();
@@ -323,9 +379,32 @@ app.get('/history', ensureAuthenticated, (req, res) => {
 	res.render('history', { bills });
 });
 app.get('/reports', ensureAuthenticated, ensureRole(['admin', 'staff']), (req, res) => {
-	const daily = db.prepare("SELECT DATE(created_at) as day, SUM(total_amount) as total, COUNT(*) as num FROM bills GROUP BY DATE(created_at) ORDER BY day DESC LIMIT 30").all();
-	const summary = db.prepare('SELECT COUNT(*) as count, SUM(total_amount) as revenue FROM bills').get();
-	res.render('reports', { daily, summary });
+    const group = (req.query.group || 'day'); // 'day' | 'month' | 'date'
+    const start = (req.query.start || '').trim();
+    const end = (req.query.end || '').trim();
+    let rows = [];
+    if (group === 'month') {
+        if (start && end) {
+            rows = db.prepare("SELECT strftime('%Y-%m', created_at) as period, SUM(total_amount) as total, COUNT(*) as num FROM bills WHERE DATE(created_at) BETWEEN DATE(?) AND DATE(?) GROUP BY strftime('%Y-%m', created_at) ORDER BY period DESC").all(start, end);
+        } else {
+            rows = db.prepare("SELECT strftime('%Y-%m', created_at) as period, SUM(total_amount) as total, COUNT(*) as num FROM bills GROUP BY strftime('%Y-%m', created_at) ORDER BY period DESC LIMIT 12").all();
+        }
+    } else if (group === 'date') {
+        // list bills for a specific date or range
+        if (start && end) {
+            rows = db.prepare("SELECT id, customer_name, total_amount as total, DATE(created_at) as day FROM bills WHERE DATE(created_at) BETWEEN DATE(?) AND DATE(?) ORDER BY created_at DESC").all(start, end);
+        } else {
+            rows = db.prepare("SELECT id, customer_name, total_amount as total, DATE(created_at) as day FROM bills WHERE DATE(created_at)=DATE('now','localtime') ORDER BY created_at DESC").all();
+        }
+    } else {
+        if (start && end) {
+            rows = db.prepare("SELECT DATE(created_at) as period, SUM(total_amount) as total, COUNT(*) as num FROM bills WHERE DATE(created_at) BETWEEN DATE(?) AND DATE(?) GROUP BY DATE(created_at) ORDER BY period DESC").all(start, end);
+        } else {
+            rows = db.prepare("SELECT DATE(created_at) as period, SUM(total_amount) as total, COUNT(*) as num FROM bills GROUP BY DATE(created_at) ORDER BY period DESC LIMIT 30").all();
+        }
+    }
+    const summary = db.prepare('SELECT COUNT(*) as count, SUM(total_amount) as revenue FROM bills').get();
+    res.render('reports', { rows, summary, group, start, end });
 });
 
 // Admin settings: shop profile and images

@@ -36,14 +36,14 @@
 
 		<section id="popular" class="landing-sections">
 			<div class="info-grid">
-				<div class="info-card"><strong>New Arrival</strong><p>Haldi, Mirchi, Dhaniya — fresh and aromatic.</p></div>
-				<div class="info-card"><strong>Best Offer</strong><p>Save on bulk orders for restaurants and retailers.</p></div>
-				<div class="info-card"><strong>Popular Mixes</strong><p>Garam Masala, Sambar Powder, Biryani Mix.</p></div>
+				<div class="info-card new"><strong>New Arrival</strong><p>Haldi, Mirchi, Dhaniya — fresh and aromatic.</p></div>
+				<div class="info-card offer"><strong>Best Offer</strong><p>Save on bulk orders for restaurants and retailers.</p></div>
+				<div class="info-card popular"><strong>Popular Mixes</strong><p>Garam Masala, Sambar Powder, Biryani Mix.</p></div>
 			</div>
 		</section>
 
 		<footer id="about" class="landing-sections">
-			<div class="card">
+			<div class="about-card">
 				<strong>About JJ Traders and Spices</strong>
 				<p class="mt-2">We deliver hand-picked spices at fair prices. Reach us for wholesale, retail, and customized blends.</p>
 				<p id="contact" class="mt-2">Contact: <%= (settings && settings.shop_contact) ? settings.shop_contact : '+91-XXXXXXXXXX' %></p>
@@ -51,9 +51,7 @@
 		</footer>
 	</div>
 
-	<div class="admin-fab">
-		<a href="/login" class="btn">Admin Login</a>
-	</div>
+	<!-- Admin login hidden as requested. Access via direct /login URL. -->
 </body>
 </html>
 

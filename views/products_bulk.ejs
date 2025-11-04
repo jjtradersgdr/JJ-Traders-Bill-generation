@@ -1,0 +1,23 @@
+<%- include('partials/header') %>
+<div class="card" style="max-width:720px;margin:10px auto;">
+	<h3>Bulk Upload Products</h3>
+	<p class="muted">Upload an Excel file (.xlsx/.xls). Expected columns: <strong>name</strong>, <strong>sku</strong> (optional), <strong>price</strong>.</p>
+	<p><a class="btn ghost" href="/products/bulk/template">Download Template (.xlsx)</a></p>
+	<form class="grid" method="post" action="/products/bulk" enctype="multipart/form-data">
+		<input class="input" type="file" name="excelFile" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" required />
+		<button class="btn">Upload</button>
+	</form>
+	<div class="mt-3">
+		<strong>Sample:</strong>
+		<table class="table">
+			<thead><tr><th>name</th><th>sku</th><th>price</th></tr></thead>
+			<tbody>
+				<tr><td>Turmeric Powder 1kg</td><td>HALDI-1KG</td><td>240</td></tr>
+				<tr><td>Cumin Seeds 500g</td><td>CUMIN-500</td><td>180</td></tr>
+			</tbody>
+		</table>
+	</div>
+</div>
+<%- include('partials/footer') %>
+
+

@@ -1,23 +1,55 @@
 <%- include('partials/header') %>
 <div class="row row-2">
-	<div class="card">
-		<h3>Summary</h3>
-		<div class="grid">
-			<div class="flex space-between"><span>Total Bills</span><strong><%= summary.count %></strong></div>
-			<div class="flex space-between"><span>Total Revenue</span><strong>₹ <%= (summary.revenue||0).toFixed(2) %></strong></div>
-		</div>
-	</div>
-	<div class="card">
-		<h3>Last 30 Days</h3>
-		<table class="table">
-			<thead><tr><th>Date</th><th class="right">Bills</th><th class="right">Revenue</th></tr></thead>
-			<tbody>
-				<% daily.forEach(d => { %>
-					<tr><td><%= d.day %></td><td class="right"><%= d.num %></td><td class="right">₹ <%= (d.total||0).toFixed(2) %></td></tr>
-				<% }) %>
-			</tbody>
-		</table>
-	</div>
+    <div class="card">
+        <h3>Summary</h3>
+        <div class="grid">
+            <div class="flex space-between"><span>Total Bills</span><strong><%= summary.count %></strong></div>
+            <div class="flex space-between"><span>Total Revenue</span><strong>₹ <%= (summary.revenue||0).toFixed(2) %></strong></div>
+        </div>
+    </div>
+    <div class="card">
+        <h3>Reports</h3>
+        <form class="grid" method="get" action="/reports">
+            <div class="grid grid-2">
+                <label>Group By
+                    <select name="group" class="input">
+                        <option value="day" <%= (group==='day')?'selected':'' %>>Daily</option>
+                        <option value="month" <%= (group==='month')?'selected':'' %>>Monthly</option>
+                        <option value="date" <%= (group==='date')?'selected':'' %>>Date-wise (list)</option>
+                    </select>
+                </label>
+                <label>Start Date
+                    <input type="date" name="start" class="input" value="<%= start||'' %>"/>
+                </label>
+                <label>End Date
+                    <input type="date" name="end" class="input" value="<%= end||'' %>"/>
+                </label>
+            </div>
+            <button class="btn">Apply</button>
+        </form>
+        <table class="table mt-3">
+            <% if (group==='date') { %>
+                <thead><tr><th>Date</th><th>#</th><th>Customer</th><th class="right">Total</th></tr></thead>
+                <tbody>
+                    <% (rows||[]).forEach(r => { %>
+                        <tr>
+                            <td><%= r.day %></td>
+                            <td><a href="/bills/<%= r.id %>">#<%= r.id %></a></td>
+                            <td><%= r.customer_name || '-' %></td>
+                            <td class="right">₹ <%= (r.total||0).toFixed(2) %></td>
+                        </tr>
+                    <% }) %>
+                </tbody>
+            <% } else { %>
+                <thead><tr><th><%= group==='month' ? 'Month' : 'Date' %></th><th class="right">Bills</th><th class="right">Revenue</th></tr></thead>
+                <tbody>
+                    <% (rows||[]).forEach(d => { %>
+                        <tr><td><%= d.period %></td><td class="right"><%= d.num %></td><td class="right">₹ <%= (d.total||0).toFixed(2) %></td></tr>
+                    <% }) %>
+                </tbody>
+            <% } %>
+        </table>
+    </div>
 </div>
 <%- include('partials/footer') %>
 

@@ -81,6 +81,10 @@ body.sidebar-open .sidebar { left: 0; }
 .info-grid { display: grid; gap: 12px; }
 @media (min-width: 768px) { .info-grid { grid-template-columns: repeat(3, 1fr); } }
 .info-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+.info-card.new { background: linear-gradient(135deg, #fee2e2, #fecaca); border-color: #fecaca; }
+.info-card.offer { background: linear-gradient(135deg, #dcfce7, #bbf7d0); border-color: #bbf7d0; }
+.info-card.popular { background: linear-gradient(135deg, #e0e7ff, #c7d2fe); border-color: #c7d2fe; }
+.about-card { background: linear-gradient(135deg, #f1f5f9, #e2e8f0); border: 1px solid #e5e7eb; border-radius: 12px; padding: 14px; }
 .admin-fab { position: fixed; left: 12px; bottom: 12px; z-index: 60; }
 .admin-fab .btn { background: #ef4444; }
 

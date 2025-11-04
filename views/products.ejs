@@ -5,7 +5,10 @@
 		<button class="btn">Search</button>
 	</form>
 	<% if (currentUser.role === 'admin' || currentUser.role === 'staff') { %>
-		<a class="btn" href="/products/new">Add Product</a>
+		<div class="flex" style="gap:8px;">
+			<a class="btn" href="/products/new">Add Product</a>
+			<a class="btn ghost" href="/products/bulk">Bulk Upload</a>
+		</div>
 	<% } %>
 </div>
 <div class="card">
