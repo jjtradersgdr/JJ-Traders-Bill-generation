@@ -8,7 +8,8 @@ const LocalStrategy = require('passport-local').Strategy;
 const bcrypt = require('bcrypt');
 const multer = require('multer');
 const fs = require('fs');
-const PDFDocument = require('pdfkit');
+let PDFDocument = null;
+try { PDFDocument = require('pdfkit'); } catch (e) { PDFDocument = null; }
 let twilioClient = null;
 try {
     if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
@@ -172,6 +173,7 @@ app.post('/billing', ensureAuthenticated, ensureRole(['admin', 'staff', 'cashier
         .run(customerName, customerAddress, customerContact, JSON.stringify(items), total, req.user.username);
     const billId = result.lastInsertRowid;
     try {
+        if (!PDFDocument) throw new Error('PDF module not available');
         const pdfPath = path.join(__dirname, 'uploads', `bill-${billId}.pdf`);
         const pdfUrlBase = process.env.PUBLIC_BASE_URL || `http://localhost:${process.env.PORT || 3000}`;
         const pdfUrl = `${pdfUrlBase}/uploads/bill-${billId}.pdf`;
@@ -247,6 +249,7 @@ app.get('/bills/:id/whatsapp', ensureAuthenticated, (req, res) => {
 
 // PDF download route
 app.get('/bills/:id/pdf', ensureAuthenticated, (req, res) => {
+    if (!PDFDocument) { return res.status(503).send('PDF generation not available'); }
     const bill = db.prepare('SELECT * FROM bills WHERE id = ?').get(req.params.id);
     if (!bill) return res.redirect('/billing');
     const items = JSON.parse(bill.items_json || '[]');
