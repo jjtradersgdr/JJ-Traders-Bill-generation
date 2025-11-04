@@ -74,7 +74,7 @@ body.sidebar-open .sidebar { left: 0; }
 .landing-brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 18px; }
 .landing-nav { display: flex; gap: 12px; flex-wrap: wrap; }
 .landing-hero { display: grid; align-items: center; padding: 16px; background: #0b0f14 url('https://images.unsplash.com/photo-1542736667-069246bdbc74?auto=format&fit=crop&w=1600&q=80') center/cover no-repeat; color: #fff; }
-.landing-hero .content { max-width: 1200px; margin: 0 auto; display: grid; gap: 14px; }
+.landing-hero .content { max-width: 1200px; margin: 0 auto; display: grid; gap: 14px; place-items: center; text-align: center; }
 .landing-hero h1 { font-size: 42px; line-height: 1.1; margin: 0; }
 .landing-hero p { max-width: 560px; color: #e5e7eb; }
 .landing-sections { max-width: 1200px; margin: 0 auto; padding: 16px; display: grid; gap: 12px; }
