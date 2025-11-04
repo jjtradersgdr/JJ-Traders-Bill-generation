@@ -99,7 +99,11 @@ app.get('/', (req, res) => {
     if (req.isAuthenticated && req.isAuthenticated()) {
         const stats = db.prepare('SELECT COUNT(*) as count FROM bills').get();
         const todayTotal = db.prepare("SELECT IFNULL(SUM(total_amount),0) as total FROM bills WHERE DATE(created_at)=DATE('now','localtime')").get();
-        return res.render('dashboard', { stats, todayTotal, title: 'Dashboard' });
+        const monthTotal = db.prepare("SELECT IFNULL(SUM(total_amount),0) as total FROM bills WHERE strftime('%Y-%m', created_at)=strftime('%Y-%m','now','localtime')").get();
+        const pendingBills = []; // placeholder if you later track payment status
+        const recentBills = db.prepare('SELECT id, customer_name, total_amount as total, created_at FROM bills ORDER BY created_at DESC LIMIT 8').all();
+        const pendingTotal = { total: 0 };
+        return res.render('dashboard', { stats, todayTotal, monthTotal, pendingBills, recentBills, pendingTotal, title: 'Dashboard' });
     }
     const settings = db.prepare('SELECT * FROM settings LIMIT 1').get();
     return res.render('home', { settings, title: 'Home' });
@@ -376,4 +380,10 @@ app.listen(PORT, () => {
 	console.log(`Server running on http://localhost:${PORT}`);
 });
 
+
+// Error handler (friendly message instead of 500 crash page)
+app.use((err, req, res, next) => {
+    console.error('Internal error:', err);
+    res.status(500).send('Something went wrong. Please try again.');
+});
 
